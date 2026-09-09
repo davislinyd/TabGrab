@@ -1,144 +1,134 @@
 # TabGrab
 
-TabGrab is a Manifest V3 extension for Chrome, Edge, Brave, and other Chromium-based browsers. It lists the tabs in the current browser window and copies selected URLs without sending browsing data anywhere.
+Grab URLs from selected browser tabs through the toolbar panel or the native tab context menu.
+
+## Version 1.2.0
+
+TabGrab provides two equivalent entry points: the restored toolbar panel for reviewing and adjusting selection, and the native tab context submenu for immediate copying.
 
 ## Features
 
-- Start with every tab highlighted in the Chromium tab strip selected automatically.
-- Select individual tabs, a Shift-click range, or all visible search results.
-- Search by page title, full URL, or domain without losing existing selections.
-- Click a domain to select all matching tabs in the current window.
-- Copy as URL only, Title + URL, or Markdown.
-- Remember the last copy format with local extension storage.
-- Handle Chromium internal pages, `about:`, extension pages, file URLs, malformed URLs, and missing favicons safely.
-- Accessible labels and visible keyboard focus states.
+- Uses native Chromium tab multi-selection.
+- Adds a `TabGrab` submenu only to the tab context menu.
+- Restores the toolbar panel for searching and adjusting tab selection before copying.
+- Copies URL-only, Title + URL, or Markdown output.
+- Preserves the left-to-right tab strip order.
+- Handles browser-internal and other special URLs without reading page content.
+- Processes everything locally without saving browsing history.
+
+## Native tab context menu
+
+Select tabs in the browser tab strip:
+
+- Windows/Linux: Ctrl + Click
+- macOS: Cmd + Click
+- Contiguous range: Shift + Click
+
+Right-click one of the tabs, open **TabGrab**, then choose:
+
+- **Copy URLs** — one URL per line.
+- **Copy Title + URLs** — title and URL on separate lines, with a blank line between tabs.
+- **Copy as Markdown** — one Markdown link per line.
+
+A single selected tab works normally. TabGrab always follows the highlighted tabs reported by Chromium at the moment the command runs.
+
+## Toolbar panel
+
+Click the TabGrab toolbar icon to open the panel. Highlighted native tabs are selected initially, then you can:
+
+- Search by title, full URL, or domain.
+- Select individual tabs or a Shift-click range.
+- Select all visible search results or clear the selection.
+- Click a domain to select all matching tabs.
+- Choose URL-only, Title + URL, or Markdown output.
+
+The panel remembers the last copy format locally.
 
 ## Installation
-
-### Chrome
-
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select the `TabGrab` project root folder.
 
 ### Microsoft Edge
 
 1. Open `edge://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the `TabGrab` project root folder.
+4. Select this repository root.
 
-### Brave
+### Google Chrome
 
-1. Open `brave://extensions`.
+1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select the `TabGrab` project root folder.
-
-## Usage
-
-Highlight one or more tabs in the browser tab strip with Cmd/Ctrl/Shift, then open TabGrab to start with those tabs selected. You can adjust the selection with checkboxes. Use the search field to filter by title, URL, or domain. **Select All** selects only visible search results, while **Deselect All** clears every selection. Clicking a domain selects all tabs from that domain. Choose a copy format and click the main Copy button.
+4. Select this repository root.
 
 ## Permissions
 
-- `tabs`: reads tab titles, URLs, favicons, order, and active state for the current window.
-- `storage`: saves the selected copy format locally.
-- `clipboardWrite`: writes the formatted list when the user clicks Copy.
+- `tabs`: reads highlighted tab titles, URLs, window IDs, and positions.
+- `contextMenus`: adds the TabGrab submenu to tab context menus.
+- `clipboardWrite`: writes the selected output to the clipboard.
+- `offscreen`: provides the hidden document required for reliable clipboard access from a Manifest V3 service worker. It tries the Clipboard API first and falls back to extension-authorized `execCommand("copy")` when Edge rejects writes from an unfocused offscreen document.
+- `storage`: remembers the toolbar panel's last selected copy format locally.
 
-No host permissions, content scripts, or background service worker are used.
+TabGrab has no host permissions, content scripts, options page, or page injection.
+
+## Privacy
+
+- No analytics or tracking.
+- No external requests or third-party services.
+- URLs never leave the browser.
+- Copied URLs and browsing history are never stored.
 
 ## Development
 
-Edit `popup.html`, `popup.css`, `popup.js`, or `manifest.json`, then click **Reload** on the browser's extensions page. To debug, right-click inside the open popup, choose **Inspect**, and review the DevTools Console.
-
-Static validation requires only Node.js:
+After editing the extension, click **Reload** on the browser extensions page. Run the local checks with Node.js:
 
 ```bash
+node --check background.js
+node --check offscreen.js
 node --check popup.js
+node --check tests/background-test.mjs
 node --check tests/edge-cdp-test.mjs
 node tests/static-test.mjs
+node tests/background-test.mjs
 ```
 
-## Automated Testing with Microsoft Edge + CDP
+## Edge + CDP Testing
 
-The integration script uses only Node.js built-ins. It connects to an already-running Microsoft Edge through Chrome DevTools Protocol; it does not install or launch another Chromium build.
+The integration test uses Microsoft Edge rather than bundled Chromium. Always use an isolated profile.
 
-Always use an isolated test profile so regular browsing data is unaffected.
-
-### Start Edge on macOS
-
-From the `TabGrab` project root:
+On macOS, from the repository root:
 
 ```bash
 "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
-  --remote-debugging-port=9222 \
-  --user-data-dir=/tmp/tabgrab-edge-test \
+  --remote-debugging-address=127.0.0.1 \
+  --remote-debugging-port=9333 \
+  --user-data-dir="$(pwd)/.edge-test-profile" \
   --enable-unsafe-extension-debugging \
   --disable-extensions-except="$(pwd)" \
   --load-extension="$(pwd)"
 ```
 
-Adjust the application path if Edge is installed elsewhere.
-
-### Start Edge on Windows
+On Windows:
 
 ```powershell
 & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" `
-  --remote-debugging-port=9222 `
-  --user-data-dir="$env:TEMP\tabgrab-edge-test" `
+  --remote-debugging-address=127.0.0.1 `
+  --remote-debugging-port=9333 `
+  --user-data-dir="C:\path\to\TabGrab\.edge-test-profile" `
   --enable-unsafe-extension-debugging `
   --disable-extensions-except="C:\path\to\TabGrab" `
   --load-extension="C:\path\to\TabGrab"
 ```
 
-Adjust the Edge executable and extension paths for the local machine.
-
-### Verify and run
-
-Verify both endpoints in a browser or with a command-line HTTP client:
-
-- `http://127.0.0.1:9222/json/version`
-- `http://127.0.0.1:9222/json`
-
-Then run:
+Confirm `http://127.0.0.1:9333/json/version` responds, then run:
 
 ```bash
-node tests/edge-cdp-test.mjs
+EDGE_CDP_URL=http://127.0.0.1:9333 node tests/edge-cdp-test.mjs
 ```
 
-The script dynamically loads or discovers the unpacked extension through Edge's CDP Extensions domain, uses the returned extension ID, triggers its toolbar action, creates HTTPS and `edge://version/` test tabs, inspects the popup DOM, exercises selection/search/domain behavior, validates format persistence and exact mocked clipboard input, and fails on unexpected runtime exceptions or console errors. Older Edge versions without the Extensions domain fall back to discovery through `edge://extensions` and direct popup navigation.
+See [`tests/README.md`](tests/README.md) for automated coverage and [`tests/MANUAL-EDGE-TEST.md`](tests/MANUAL-EDGE-TEST.md) for native tab-strip verification.
 
-Internal pages can be blocked by some managed Edge policies. The test reports the special-URL assertion as `SKIPPED`, rather than `PASS`, when Edge does not expose such a tab.
+## Known Limitations
 
-### Edge CDP limitation
-
-Microsoft Edge 152's CDP `Extensions.triggerAction` currently collapses a native multi-tab highlight to one tab before the popup can read it. TabGrab reads `tab.highlighted` directly; verify this behavior manually by highlighting tabs with Cmd/Ctrl/Shift in the tab strip and opening the toolbar action. The remaining CDP assertions can still run normally.
-
-See [`tests/README.md`](tests/README.md) for test details and troubleshooting.
-
-## Project Structure
-
-```text
-TabGrab/
-├── manifest.json
-├── popup.html
-├── popup.css
-├── popup.js
-├── icons/
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-├── tests/
-│   ├── edge-cdp-test.mjs
-│   ├── static-test.mjs
-│   └── README.md
-└── README.md
-```
-
-## Privacy
-
-- The extension never sends URLs or other browsing data to an external server.
-- It contains no analytics or tracking.
-- All selection, formatting, storage, and clipboard operations happen locally.
+- Browser chrome, including the native tab strip and context menu, is not fully controllable through CDP. Cmd/Ctrl, Shift, and right-click behavior requires native Edge verification.
+- Right-clicking an unselected tab may change Chromium's highlighted set. TabGrab intentionally copies the set returned by `chrome.tabs.query()` after that native behavior occurs.
+- Tabs without a URL exposed by the Tabs API are skipped. If none remain, TabGrab leaves the clipboard unchanged and logs an error.

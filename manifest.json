@@ -1,13 +1,18 @@
 {
   "manifest_version": 3,
   "name": "TabGrab",
-  "description": "Select tabs from the current window and copy their URLs in multiple formats.",
-  "version": "1.0.0",
+  "description": "Grab URLs from selected tabs through a toolbar panel or the native tab context menu.",
+  "version": "1.2.0",
   "permissions": [
     "tabs",
-    "storage",
-    "clipboardWrite"
+    "contextMenus",
+    "clipboardWrite",
+    "offscreen",
+    "storage"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_title": "TabGrab",
     "default_popup": "popup.html",

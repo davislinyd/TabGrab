@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TabGrab</title>
+    <link rel="stylesheet" href="popup.css">
+    <script src="popup.js" defer></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="title-row">
+          <h1>TabGrab</h1>
+          <p id="selected-count" aria-live="polite">Selected: 0</p>
+        </div>
+
+        <label class="search-field" for="search-input">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="search-input" type="search" placeholder="Search tabs..." autocomplete="off" aria-label="Search tabs">
+        </label>
+
+        <div class="selection-actions">
+          <button id="select-all-button" class="secondary-button" type="button">Select All</button>
+          <button id="deselect-all-button" class="secondary-button" type="button">Deselect All</button>
+        </div>
+      </header>
+
+      <section id="tab-list" class="tab-list" aria-label="Open tabs"></section>
+
+      <footer class="footer">
+        <label class="format-field" for="format-select">
+          <span>Format</span>
+          <select id="format-select">
+            <option value="url">URL only</option>
+            <option value="title-url">Title + URL</option>
+            <option value="markdown">Markdown</option>
+          </select>
+        </label>
+        <button id="copy-button" class="copy-button" type="button" disabled>Copy URLs</button>
+      </footer>
+    </main>
+  </body>
+</html>
